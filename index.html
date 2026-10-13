@@ -1,0 +1,843 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Hành Trình Làng Quê</title>
+<meta name="description" content="Trò chơi học tiếng Anh qua hành trình khám phá làng quê Việt Nam.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap">
+<style>
+/* Layout: one centred column. Sticky HUD (timer, score, six-stop path) above a single question card; report is a long scrolling dossier. */
+:root{
+  --bg:#140b24; --bg2:#1b1030; --surface:#241540; --surface2:#2f1d52; --line:#46306f;
+  --fg:#f2ecfc; --muted:#b9abd6; --amethyst:#a77bff; --amethyst-d:#6a3fc4;
+  --gold:#e6cf9a; --gold-d:#b89a58; --good:#6fe3b0; --bad:#ff8aa0; --warn:#ffc46b;
+  --display:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --body:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0; font-family:var(--body); font-size:16px; line-height:1.55; color:var(--fg);
+  background-color:var(--bg);
+  background-image:radial-gradient(900px 480px at 85% -10%,rgba(167,123,255,.22),transparent 60%),radial-gradient(700px 420px at -10% 30%,rgba(106,63,196,.25),transparent 60%);
+  background-attachment:fixed;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.wrap{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:20px 64px}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;margin:0;text-wrap:balance}
+.eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.muted{color:var(--muted)}
+
+/* HUD */
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:rgba(20,11,36,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hud-in{max-width:780px;margin:0 auto;padding:8px 16px 6px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.hud .score{justify-self:start;display:flex;flex-direction:column;line-height:1.15}
+.hud .score b{font-family:var(--display);font-size:1.6rem;color:var(--gold);font-variant-numeric:tabular-nums}
+.hud .score span{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.timer{font-family:var(--display);font-size:2.2rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;text-align:center}
+.timer.low{color:var(--warn)}
+.timer.crit{color:var(--bad)}
+.hud .right{justify-self:end;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.combo{font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--gold-d);color:var(--gold);background:rgba(230,207,154,.08);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.combo.off{opacity:.45}
+.mini{font-size:.76rem;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted)}
+.mini:hover{border-color:var(--amethyst);color:var(--fg)}
+.bar{height:3px;background:var(--line)}
+.bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--amethyst-d),var(--gold));transform-origin:left;transition:transform .5s linear}
+.path{max-width:780px;margin:0 auto;padding:8px 16px 8px;display:flex;align-items:center;gap:0}
+.stop{display:flex;align-items:center;flex:1}
+.stop:last-child{flex:0}
+.node{width:24px;height:24px;transform:rotate(45deg);border:1.5px solid var(--line);background:var(--bg2);display:grid;place-items:center;flex:none;border-radius:4px}
+.node span{transform:rotate(-45deg);font-family:var(--display);font-weight:700;font-size:.72rem;color:var(--muted)}
+.node.done{background:var(--gold);border-color:var(--gold)}
+.node.done span{color:#2a1650}
+.node.cur{border-color:var(--amethyst);background:var(--amethyst-d);box-shadow:0 0 14px rgba(167,123,255,.7)}
+.node.cur span{color:#fff}
+.link{flex:1;height:1.5px;background:var(--line);margin-inline:6px}
+.link.done{background:var(--gold-d)}
+.qcount{max-width:780px;margin:0 auto;padding:0 16px 8px;font-size:.74rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+/* Intro */
+.hero{padding-block:28px 8px;position:relative}
+.hero h1{font-size:clamp(2.8rem,10vw,4.6rem);margin-top:10px;background:linear-gradient(180deg,#fff 20%,var(--gold) 120%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .sub{font-family:var(--display);font-size:1.5rem;color:var(--amethyst);margin-top:6px;font-style:italic;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-block:20px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.84rem;color:var(--muted);background:rgba(36,21,64,.6)}
+.chip b{color:var(--gold);font-weight:600}
+.terrace{display:block;width:100%;height:auto;margin-top:6px;opacity:.9}
+.panel{background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid var(--line);border-radius:18px;padding:22px}
+.panel+.panel{margin-top:16px}
+.rules{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.rules li{display:grid;grid-template-columns:auto 1fr;gap:12px;color:var(--muted);font-size:.94rem}
+.rules li b{color:var(--fg)}
+.dia{width:9px;height:9px;transform:rotate(45deg);background:var(--gold);margin-top:8px}
+label.f{display:block;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.txt{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:1.05rem;color:var(--fg)}
+.txt:focus{border-color:var(--amethyst);outline:none;box-shadow:0 0 0 3px rgba(167,123,255,.25)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:13px 28px;font-weight:600;font-size:1rem;color:#fff;background:linear-gradient(135deg,#9a68f7,#6a3fc4);box-shadow:0 8px 24px rgba(106,63,196,.45),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;box-shadow:none;border:1px solid var(--gold-d);color:var(--gold)}
+.btn.ghost:hover{background:rgba(230,207,154,.08)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+/* Chapter card */
+.chapter{text-align:center;padding-block:36px}
+.chapter .big{font-family:var(--display);font-size:clamp(5rem,26vw,9rem);font-weight:700;line-height:.9;color:transparent;-webkit-text-stroke:1.5px var(--gold);}
+.chapter h2{font-size:2.2rem;margin-top:10px}
+.chapter .en{font-family:var(--display);font-style:italic;font-size:1.3rem;color:var(--amethyst);margin-top:4px}
+.chapter p{max-width:52ch;margin:16px auto 24px;color:var(--muted)}
+
+/* Question */
+.card{background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid var(--line);border-radius:18px;padding:22px;margin-top:6px}
+.kick{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tag{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.ctx{background:rgba(167,123,255,.08);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:.93rem;color:#ddd2f3;max-width:68ch}
+.ctx .eyebrow{display:block;margin-bottom:4px}
+.qt{font-size:1.2rem;font-weight:600;line-height:1.5;max-width:62ch;margin:0 0 18px}
+.blank{display:inline-block;width:5.2ch;border-bottom:2px solid var(--gold);margin-inline:3px;transform:translateY(2px)}
+.opts{display:grid;gap:10px}
+.opt{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:center;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:border-color .15s,transform .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--amethyst);transform:translateX(2px)}
+.opt .l{width:28px;height:28px;border-radius:50%;border:1px solid var(--gold-d);display:grid;place-items:center;font-size:.78rem;font-weight:600;color:var(--gold)}
+.opt.good{border-color:var(--good);background:rgba(111,227,176,.12)}
+.opt.bad{border-color:var(--bad);background:rgba(255,138,160,.12)}
+.opt.dim{opacity:.5}
+.opt:disabled{cursor:default}
+.ansrow{display:flex;gap:10px;flex-wrap:wrap}
+.ansrow .txt{flex:1;min-width:180px}
+.txt.good{border-color:var(--good)}.txt.bad{border-color:var(--bad)}
+.slots{min-height:56px;border:1px dashed var(--gold-d);border-radius:12px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;background:rgba(20,11,36,.5)}
+.slots .ph{color:var(--muted);font-size:.9rem;align-self:center}
+.bank{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tok{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 13px;font-weight:500}
+.tok:hover:not(:disabled){border-color:var(--amethyst)}
+.tok.used{opacity:.25}
+.slots.good{border-color:var(--good);border-style:solid}.slots.bad{border-color:var(--bad);border-style:solid}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.mcol{display:grid;gap:8px;align-content:start;min-width:0}
+.mi{display:flex;gap:10px;align-items:center;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;overflow-wrap:anywhere}
+.mi .n{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:700;color:#1d1033;background:transparent;border:1px dashed var(--line)}
+.mi.sel{box-shadow:0 0 0 2px var(--gold)}
+.mi.good{border-color:var(--good)}.mi.bad{border-color:var(--bad)}
+.hue0{--hc:#c9a8ff}.hue1{--hc:#e6cf9a}.hue2{--hc:#8fd9ff}.hue3{--hc:#ffa8d0}.hue4{--hc:#a8f0c8}.hue5{--hc:#ffc48f}
+.mi .n.on{background:var(--hc);border-color:var(--hc)}
+.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:50px;padding:10px;border-radius:12px;border:1px dashed var(--gold-d);margin-bottom:12px;background:rgba(20,11,36,.5)}
+.chipw{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-align:left;max-width:100%;overflow-wrap:anywhere}
+.chipw.sel{box-shadow:0 0 0 2px var(--gold)}
+.chipw.good{border-color:var(--good)}.chipw.bad{border-color:var(--bad)}
+.buckets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.bk{border:1px solid var(--line);border-radius:12px;padding:10px;min-height:96px;background:rgba(47,29,82,.45);display:flex;flex-direction:column;gap:8px;min-width:0}
+.bk header{font-family:var(--display);font-weight:700;font-size:1.15rem;color:var(--gold);text-align:center;border-bottom:1px solid var(--line);padding-bottom:6px;cursor:pointer;background:none;border-top:0;border-inline:0;width:100%}
+.bk.ready header{border-bottom-color:var(--gold)}
+.hint{font-size:.84rem;color:var(--muted);margin:0 0 10px}
+.fb{margin-top:18px;border-radius:14px;padding:16px 18px;border:1px solid var(--line)}
+.fb.good{background:rgba(111,227,176,.08);border-color:rgba(111,227,176,.55)}
+.fb.bad{background:rgba(255,138,160,.08);border-color:rgba(255,138,160,.55)}
+.fb.mid{background:rgba(255,196,107,.08);border-color:rgba(255,196,107,.55)}
+.fb h3{font-family:var(--body);font-size:1.02rem;font-weight:700;margin-bottom:6px}
+.fb.good h3{color:var(--good)}.fb.bad h3{color:var(--bad)}.fb.mid h3{color:var(--warn)}
+.fb p{margin:6px 0;font-size:.94rem;color:#e4daf6;max-width:64ch}
+.fb .ans{font-weight:600;color:var(--fg)}
+.fb .go{margin-top:14px}
+.pts{font-variant-numeric:tabular-nums}
+
+/* Report */
+.rep-hero{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
+.ring{position:relative;width:132px;height:132px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:var(--display);font-size:2.2rem;font-weight:700;line-height:1}
+.ring .v small{display:block;font-family:var(--body);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px;font-weight:500}
+.rank{font-family:var(--display);font-size:clamp(1.9rem,6vw,2.7rem);color:var(--gold);line-height:1.05;margin:6px 0}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-size:.88rem;color:var(--muted)}
+.facts b{color:var(--fg);font-variant-numeric:tabular-nums}
+.sec{margin-top:30px}
+.sec h2{font-size:1.9rem;margin-bottom:4px}
+.sec>p{color:var(--muted);margin:0 0 14px;max-width:62ch}
+.skill{display:grid;grid-template-columns:minmax(120px,190px) 1fr 52px;gap:12px;align-items:center;padding:9px 0}
+.skill .nm{font-weight:500;font-size:.94rem}
+.track{height:10px;border-radius:999px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.track i{display:block;height:100%;border-radius:999px;background:var(--amethyst)}
+.track i.hi{background:linear-gradient(90deg,var(--gold-d),var(--gold))}
+.track i.lo{background:linear-gradient(90deg,#d96a85,var(--bad))}
+.skill .pc{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.weak{padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.weak+.weak{margin-top:12px}
+.weak .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.weak h3{font-family:var(--body);font-size:1rem;font-weight:700}
+.weak .st{font-size:.82rem;color:var(--bad);font-weight:600;font-variant-numeric:tabular-nums}
+.weak p{margin:8px 0 0;font-size:.92rem;color:#e4daf6;max-width:64ch}
+.steps{list-style:none;padding:0;margin:0;display:grid;gap:14px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:42px 1fr;gap:14px;counter-increment:s}
+.steps li::before{content:counter(s);font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--gold);width:38px;height:38px;border:1px solid var(--gold-d);border-radius:50%;display:grid;place-items:center;transform:none}
+.steps h3{font-family:var(--body);font-size:1rem;font-weight:700;margin-bottom:3px}
+.steps p{margin:0;font-size:.92rem;color:#ddd2f3;max-width:64ch}
+.insights{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.insights li{font-size:.92rem;color:#e4daf6;display:grid;grid-template-columns:auto 1fr;gap:10px}
+details.err{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-top:10px;overflow:hidden}
+details.err summary{cursor:pointer;padding:12px 16px;font-weight:600;display:flex;justify-content:space-between;gap:10px;list-style:none}
+details.err summary::-webkit-details-marker{display:none}
+details.err summary span:last-child{color:var(--bad);font-variant-numeric:tabular-nums}
+.erritem{padding:12px 16px;border-top:1px solid var(--line);font-size:.92rem}
+.erritem .q{font-weight:600;margin-bottom:6px}
+.erritem .you{color:var(--bad)}.erritem .ok{color:var(--good)}
+.erritem .ex{color:var(--muted);margin-top:4px}
+.banner{border:1px solid var(--warn);background:rgba(255,196,107,.08);color:var(--warn);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-weight:600}
+.copybox{width:100%;min-height:160px;margin-top:12px;background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--fg);padding:12px;font-family:var(--body);font-size:.85rem}
+.toast{font-size:.88rem;color:var(--good);min-height:1.4em}
+@media (max-width:560px){
+  .hud-in{grid-template-columns:auto 1fr auto;gap:6px}
+  .timer{font-size:1.8rem}
+  .mgrid{gap:8px}
+  .rep-hero{grid-template-columns:1fr;justify-items:start}
+  .skill{grid-template-columns:1fr 46px}
+  .skill .track{grid-column:1/-1;grid-row:2}
+  .card{padding:16px}
+  .hud .right .mini{padding:5px 9px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .card,.chapter,.hero,.panel{animation:rise .35s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .combo.pop{animation:pop .4s ease}
+  @keyframes pop{50%{transform:scale(1.18)}}
+}
+</style></head><body>
+
+<div id="hudwrap" hidden>
+  <div class="hud">
+    <div class="hud-in">
+      <div class="score"><b id="hs">0</b><span>điểm</span></div>
+      <div class="timer" id="ht" aria-label="Thời gian còn lại">45:00</div>
+      <div class="right">
+        <span class="combo off" id="hc">Combo ×0</span>
+        <button class="mini" id="hm" type="button">Âm thanh: bật</button>
+        <button class="mini" id="hf" type="button">Nộp bài</button>
+      </div>
+    </div>
+    <div class="bar"><i id="hb"></i></div>
+    <div class="path" id="hp" aria-hidden="true"></div>
+    <div class="qcount" id="hq"></div>
+  </div>
+</div>
+<main class="wrap" id="app"></main>
+
+<script>
+(function(){
+'use strict';
+var TOTAL=45*60, KEY='htlq-unit2-v1';
+
+var CH=[
+ {n:'I',t:'Đồng lúa & Nông trại',s:'Farm Life',d:'Từ vựng công việc đồng áng: paddy field, herd, load, harvest time và các cụm động từ nông nghiệp.'},
+ {n:'II',t:'Cảnh sắc làng quê',s:'Village Scenery',d:'Tính từ miêu tả làng quê như vast, picturesque, hospitable cùng các từ khoá trong bài đọc.'},
+ {n:'III',t:'Phòng thu âm',s:'Sound Studio: /ə/ và /ɪ/',d:'Phân biệt hai âm ngắn /ə/ và /ɪ/ qua những từ quen thuộc trong bài.'},
+ {n:'IV',t:'Cuộc đua so sánh',s:'Comparative Adverbs',d:'Trạng từ so sánh: thêm -er, more + trạng từ, và dạng bất quy tắc well, badly.'},
+ {n:'V',t:'Giao tiếp mỗi ngày',s:'Everyday English',d:'Khen và đáp lời khen, hiểu hội thoại của Mai và Nick, đọc quảng cáo hai ngôi làng.'},
+ {n:'VI',t:'Đọc hiểu & Viết đoạn',s:'Reading and Writing',d:'Đúng/sai theo bài đọc, ý kiến về cuộc sống nông thôn, từ nối và câu chủ đề.'}
+];
+var SKILLS={vocab:'Từ vựng',pron:'Phát âm /ə/ - /ɪ/',gram:'Trạng từ so sánh',comm:'Giao tiếp và hội thoại',rw:'Đọc hiểu và Viết'};
+var TAGS={
+ 'farm':{n:'Từ vựng: công việc nông thôn',k:'vocab',tip:'Học theo cụm động từ: load rice onto a truck và unload rice from a truck, herd cattle, catch fish, dry rice, plough a field, milk cows, feed pigs. Làm thẻ ghi nhớ hai mặt (tiếng Việt - cụm tiếng Anh) rồi đặt một câu về làng của bạn cho mỗi cụm.'},
+ 'adj':{n:'Từ vựng: tính từ miêu tả',k:'vocab',tip:'Gắn mỗi tính từ với một hình ảnh: vast (sa mạc, cánh đồng), picturesque (làng đẹp như tranh), hospitable (người hiếu khách), well-trained (công nhân lành nghề), surrounded (bị bao quanh). Ghi lại cụm đi kèm: vast desert, picturesque scenery, hospitable people, well-trained workers, surrounded by trees.'},
+ 'readvocab':{n:'Từ vựng: từ khoá trong bài đọc',k:'vocab',tip:'Đọc lại đoạn về làng quê Việt Nam ở Skills 1, gạch chân stretching, canals, cultivate, orchards. Viết nghĩa bằng lời của bạn và vẽ hình nhỏ cho từng từ.'},
+ 'pron':{n:'Phát âm /ə/ và /ɪ/',k:'pron',tip:'/ə/ là âm "ơ" ngắn, nhẹ, thường nằm ở âm tiết không nhấn (water, farmers, pasta, collect). /ɪ/ là âm "i" ngắn, nằm giữa i và ê (pick, village, busy, cottage, harvest). Nghe và nhắc lại mỗi từ 5 lần, thu âm giọng mình rồi so với từ điển online có phát âm.'},
+ 'g-er':{n:'Trạng từ so sánh: thêm -er',k:'gram',tip:'Trạng từ ngắn giống tính từ (fast, hard, high, late, soon) thêm -er: faster, harder, higher, later. Riêng early đổi y thành i: earlier. Viết 10 câu "A runs faster than B" về bạn bè và người thân.'},
+ 'g-more':{n:'Trạng từ so sánh: more + trạng từ đuôi -ly',k:'gram',tip:'Trạng từ dài, đuôi -ly (beautifully, clearly, carefully, quickly, heavily, quietly, soundly, frequently) dùng more đứng trước: more carefully. Mẹo: thấy -ly thì nghĩ đến more. Chép bảng 8 trạng từ, che cột bên phải để tự kiểm tra.'},
+ 'g-irr':{n:'Trạng từ bất quy tắc: well, badly',k:'gram',tip:'Học thành cặp: well - better, badly - worse, much - more, little - less. Đặt câu: "I sing badly, but my brother sings even worse."'},
+ 'g-struct':{n:'Cấu trúc câu so sánh: ...than...',k:'gram',tip:'Khung câu: S + V + trạng từ so sánh + than + S/danh từ. Khi xếp câu, tìm chủ ngữ và động từ trước, rồi trạng từ so sánh, cuối cùng đến "than". Viết lại 5 câu so sánh về lớp của bạn.'},
+ 'comm':{n:'Giao tiếp: khen và đáp lời khen',k:'comm',tip:'Khen: What a + tính từ + danh từ + you have! hoặc You really have a nice ... Đáp lời: Thank you. / I\'m glad you like it. rồi thêm một thông tin nhỏ (My dad made it for me). Luyện đối thoại đôi với shirt, bicycle, school bag.'},
+ 'conv':{n:'Hiểu hội thoại của Mai và Nick',k:'comm',tip:'Đọc hội thoại hai lần: lần 1 nắm ý chính (Ai, Ở đâu, Làm gì), lần 2 gạch từ khoá cho từng câu hỏi (uncle\'s house, combine harvester, healthier life). Tự đặt câu hỏi Wh- cho mỗi lời của Mai.'},
+ 'advert':{n:'Đọc quảng cáo Duong Lam và Hollum',k:'comm',tip:'Kẻ bảng hai cột Duong Lam và Hollum. Ghi từ khoá về di chuyển (car, bus, bicycle / air, ferry) và điểm tham quan (pagoda, temples / church, museum, lighthouse). Nói 3 câu dạng "Both ... / Only ...".'},
+ 'read':{n:'Đọc hiểu Đúng/Sai',k:'rw',tip:'Với mỗi câu, tìm câu trong bài có cùng từ khoá và gạch chân bằng chứng. Cẩn thận các từ tuyệt đối như only, always: thường làm câu trở thành sai.'},
+ 'opinions':{n:'Ý kiến: thích và không thích cuộc sống nông thôn',k:'rw',tip:'Chia hai cột Like và Dislike, nhớ 3 ý mỗi cột: low cost of living, fresh air, close people / few entertainment places, poor transport, fewer good schools.'},
+ 'write':{n:'Viết: câu chủ đề và từ nối',k:'rw',tip:'Một đoạn văn gồm câu chủ đề, 3 ý và câu kết. Nhớ từ nối: Besides (thêm ý), However (đối lập), Because (lý do), So (kết quả). Viết nháp rồi gạch chân từ nối của mình.'}
+};
+var TYPENAME={mcq:'Chọn đáp án',input:'Điền từ',order:'Sắp xếp câu',match:'Nối cặp',sort:'Phân loại'};
+
+var CTX={
+ conv:['Tóm tắt hội thoại','Mai has just come back from a summer holiday at her uncle\'s house in a village in Bac Ninh. It was harvest time, so the villagers were cutting their rice with a combine harvester. Mai helped load the rice onto a truck, then unload and dry it. She also went with the village children to herd buffaloes and cows. In the evenings they played traditional games such as bamboo dancing and dragon-snake. Mai thinks life there moves more slowly than in the city, but it seems healthier.'],
+ adv:['Hai quảng cáo','Duong Lam (Son Tay, Ha Noi) is one of the most ancient villages in Viet Nam. It is famous for its ancient pagoda, traditional houses and temples. Visitors get there by car, bus or bicycle. Hollum (Ameland island, the Netherlands) is also an ancient village. It has traditional houses, a museum, a church and a lighthouse. Visitors can reach it by air or ferry.'],
+ read:['Bài đọc tóm lược','The author lives in a peaceful village in the south of Viet Nam. Green rice fields stretch far into the distance, and the houses sit among trees, lakes, ponds and canals. Life moves more slowly than in the city. People work hard growing vegetables and rice and raising cattle; some families grow fruit trees or catch fish. Children play traditional games and sometimes help their parents. Neighbours know each other well and are friendly and hospitable.']
+};
+
+function M(ch,tag,q,opts,exp,ctx){return{type:'mcq',ch:ch,tag:tag,q:q,opts:opts,exp:exp,ctx:ctx}}
+function I(ch,tag,q,ans,exp){return{type:'input',ch:ch,tag:tag,q:q,ans:ans,exp:exp}}
+function O(ch,tag,q,sentence,exp){return{type:'order',ch:ch,tag:tag,q:q,sentence:sentence,exp:exp}}
+function X(ch,tag,q,pairs,exp){return{type:'match',ch:ch,tag:tag,q:q,pairs:pairs,exp:exp}}
+function SO(ch,tag,q,buckets,items,exp,ctx){return{type:'sort',ch:ch,tag:tag,q:q,buckets:buckets,items:items,exp:exp,ctx:ctx}}
+
+var QS=[
+ /* I */
+ M(1,'farm','A place in which people grow rice is called a ____.',['paddy field','harvest time','combine harvester','herd'],'Paddy field là cánh đồng lúa. Harvest time là mùa gặt, combine harvester là máy gặt đập liên hợp.'),
+ M(1,'farm','It took them an hour to ____ all the goods onto the truck.',['load','unload','herd','catch'],'Có "onto the truck" (lên xe tải) nên dùng load = chất hàng lên. Unload là dỡ hàng xuống.'),
+ M(1,'farm','Nowadays, people in my village use a ____ to harvest their rice and separate the grains from the rest of the plant.',['combine harvester','paddy field','herd','harvest time'],'Combine harvester là máy gặt đập liên hợp: vừa gặt vừa tách hạt khỏi cây lúa.'),
+ M(1,'farm','A busy time when people cut and gather their crops is called ____.',['harvest time','paddy field','load','herd'],'Harvest time là mùa gặt: lúc mọi người thu hoạch cây trồng.'),
+ M(1,'farm','The village children take the buffaloes and cows to the field to ____ them.',['herd','load','unload','dry'],'Herd là chăn dắt gia súc (herd cattle, herd buffaloes).'),
+ M(1,'farm','We helped the farmers herd ____.',['cattle','poultry','fruit','rice'],'Herd cattle là chăn gia súc (bò, trâu). Poultry là gia cầm (gà, vịt), không đi với herd.'),
+ M(1,'farm','At harvest time, farmers are busy cutting and collecting ____.',['crops','scenery','canals','orchards'],'Crops là cây trồng, hoa màu: thứ người ta cắt và thu gom vào mùa gặt.'),
+ M(1,'farm','The driver ____ the rice from the back of the truck.',['unloaded','loaded','herded','cultivated'],'"From the back of the truck" (từ thùng xe xuống) nên dùng unloaded = dỡ xuống.'),
+ I(1,'farm','People here live by ____ fish from nearby lakes and ponds. (catch)',['catching'],'Sau giới từ "by" dùng V-ing: live by catching fish = sống bằng nghề đánh bắt cá.'),
+ X(1,'farm','Nối cụm từ với nghĩa tiếng Việt.',[['unload rice','dỡ lúa xuống'],['plough a field','cày ruộng'],['milk cows','vắt sữa bò'],['feed pigs','cho lợn ăn'],['catch fish','bắt cá'],['dry rice','phơi lúa']],'Các cụm này là hoạt động của người dân nông thôn trong Getting Started 4.'),
+ /* II */
+ X(2,'adj','Nối tính từ với định nghĩa đúng.',[['vast','extremely large in area or size'],['hospitable','friendly and welcoming to guests'],['well-trained','having received good, thorough training'],['surrounded','having something all around or near'],['picturesque','pretty, especially in an old-fashioned way']],'Vast = rộng lớn, hospitable = hiếu khách, well-trained = được đào tạo tốt, surrounded = bị bao quanh, picturesque = đẹp như tranh.'),
+ I(2,'adj','The local people are kind and ____ to visitors.',['hospitable'],'Hospitable (hiếu khách) mô tả người đón tiếp khách thân thiện.'),
+ I(2,'adj','Our factory needs a lot of ____ workers.',['well-trained','well trained'],'Well-trained workers là công nhân được đào tạo bài bản. Nhớ gạch nối.'),
+ M(2,'adj','While travelling up the mountain, people always stop and take photos of the ____ scenery.',['picturesque','hospitable','well-trained','surrounded'],'Picturesque scenery = phong cảnh đẹp như tranh, hợp với việc dừng lại chụp ảnh.'),
+ M(2,'adj','The Sahara is a ____ desert that covers parts of eleven countries in northern Africa.',['vast','picturesque','hospitable','well-trained'],'Vast = rộng lớn. Sa mạc Sahara trải trên nhiều quốc gia nên là vast desert.'),
+ M(2,'adj','The lake is ____ by a lot of trees.',['surrounded','surround','surrounding','surrounds'],'Câu bị động: be + V3 + by. Hồ bị cây bao quanh: is surrounded by.'),
+ X(2,'readvocab','Nối từ trong bài đọc với nghĩa của nó.',[['stretching','covering a large area of land'],['canals','narrow waterways that carry water to fields'],['cultivate','to grow plants or crops'],['orchards','places where fruit trees are grown']],'Stretching = trải dài, canals = kênh mương, cultivate = trồng trọt, orchards = vườn cây ăn quả.'),
+ M(2,'adj','Which two adjectives best describe a quiet green village with fields, a lake and buffaloes?',['peaceful and picturesque','crowded and noisy','crowded and picturesque','noisy and peaceful'],'Làng yên tĩnh, xanh, đẹp như tranh nên là peaceful and picturesque.'),
+ /* III */
+ SO(3,'pron','Xếp mỗi từ vào nhóm có âm nổi bật đúng khi bạn đọc từ đó.',['/ə/','/ɪ/'],[['collect',0],['orchard',0],['gather',0],['village',1],['busy',1],['cottage',1],['pick',1]],'/ə/: collect /kəˈlekt/, orchard /ˈɔːtʃəd/, gather /ˈɡæðə/. /ɪ/: village /ˈvɪlɪdʒ/, busy /ˈbɪzi/, cottage /ˈkɒtɪdʒ/, pick /pɪk/.'),
+ SO(3,'pron','Tiếp tục phân loại: âm nào nổi bật trong mỗi từ?',['/ə/','/ɪ/'],[['farmers',0],['water',0],['pasta',0],['harvest',1],['milk',1],['picking',1]],'/ə/ xuất hiện ở cuối farmers, water, pasta. /ɪ/ xuất hiện trong harvest /ˈhɑːvɪst/, milk /mɪlk/, picking /ˈpɪkɪŋ/.'),
+ M(3,'pron','Which word does NOT contain the sound /ɪ/?',['collect','village','busy','cottage'],'Collect /kəˈlekt/ bắt đầu bằng /ə/. Ba từ còn lại đều có /ɪ/.'),
+ M(3,'pron','Which word has /ɪ/ in the FIRST syllable?',['village','pasta','collect','gather'],'Village /ˈvɪlɪdʒ/ có /ɪ/ ngay âm tiết đầu. Pasta và gather bắt đầu bằng phụ âm rồi kết thúc bằng /ə/.'),
+ M(3,'pron','In the word "harvest", the vowel in the second syllable is ____.',['/ɪ/','/ə/','/iː/','/e/'],'Harvest đọc /ˈhɑːvɪst/: âm tiết thứ hai là /ɪ/ ngắn.'),
+ M(3,'pron','Which word has /ɪ/ in the LAST syllable?',['cottage','farmers','water','pasta'],'Cottage /ˈkɒtɪdʒ/ kết thúc bằng /ɪdʒ/. Farmers, water, pasta kết thúc bằng /ə/.'),
+ /* IV */
+ X(4,'g-er','Nối trạng từ với dạng so sánh hơn của nó.',[['high','higher','g-er'],['late','later','g-er'],['early','earlier','g-er'],['quickly','more quickly','g-more'],['well','better','g-irr'],['badly','worse','g-irr']],'Trạng từ ngắn thêm -er (early đổi y thành ier). Trạng từ đuôi -ly dùng more. Well - better và badly - worse là bất quy tắc.'),
+ I(4,'g-more','Mai dances (beautifully) ____ than Hoa does.',['more beautifully'],'Beautifully là trạng từ dài đuôi -ly nên dùng more beautifully.'),
+ I(4,'g-more','Please write (clearly) ____. I can\'t read it.',['more clearly'],'Clearly đuôi -ly: more clearly.'),
+ I(4,'g-er','Life in the city seems to move (fast) ____ than that in the countryside.',['faster'],'Fast giống tính từ nên thêm -er: faster.'),
+ I(4,'g-er','If you want to get better marks, you must work much (hard) ____.',['harder'],'Hard thêm -er: harder.'),
+ I(4,'g-more','Today it\'s raining (heavily) ____ than it was yesterday.',['more heavily'],'Heavily đuôi -ly: more heavily.'),
+ M(4,'g-more','After his accident last month, he is driving ____ now.',['more carefully','carefuller','more careful','most carefully'],'Carefully là trạng từ đuôi -ly: more carefully. More careful là tính từ, không bổ nghĩa cho động từ driving.'),
+ M(4,'g-er','A horse can run ____ than a buffalo.',['faster','more fast','fastly','more fastly'],'Fast vừa là tính từ vừa là trạng từ, không có dạng fastly. So sánh hơn: faster.'),
+ M(4,'g-more','You\'re too loud. Can you speak a bit ____?',['more quietly','more quiet','quietlier','most quietly'],'Quietly đuôi -ly: more quietly. "A bit" đi với so sánh hơn, không dùng most.'),
+ M(4,'g-more','After working hard all day on the farm, we slept ____ than ever before.',['more soundly','soundlier','more sound','most soundly'],'Soundly (ngủ say) là trạng từ đuôi -ly: more soundly.'),
+ M(4,'g-er','The farmers started harvesting their crops ____ than expected.',['earlier','more early','earlyer','most early'],'Early đổi y thành i rồi thêm -er: earlier.'),
+ O(4,'g-struct','Sắp xếp thành câu hoàn chỉnh. (Xe đỏ chạy 200 km/h, xe đen chạy 160 km/h.)','The red car can run faster than the black car.','Khung: S + can run + faster + than + S.'),
+ O(4,'g-struct','Sắp xếp thành câu hoàn chỉnh. (Xe buýt chạy 15 phút một chuyến, tàu 30 phút một chuyến.)','The buses run more frequently than the trains.','Frequently đuôi -ly nên dùng more frequently + than.'),
+ M(4,'g-irr','Hoa got 80% and Mai got 90%. Mai did ____ than Hoa.',['better','gooder','more well','weller'],'Well có dạng so sánh bất quy tắc là better.'),
+ M(4,'g-irr','My brother sings badly, but my sister sings even ____.',['worse','badder','more badly','worser'],'Badly có dạng so sánh bất quy tắc là worse. "Even" dùng để nhấn mạnh so sánh hơn.'),
+ /* V */
+ M(5,'comm','Tom: "What a beautiful kite you have, Mai!" Mai: "____"',['Thank you, Tom. My dad made it for me last weekend.','No, it is not beautiful at all.','Yes, I know.','Why do you look at my kite?'],'Khi được khen, hãy cảm ơn trước rồi có thể thêm một thông tin nhỏ. Từ chối thẳng hoặc đáp cộc lốc nghe thiếu lịch sự.'),
+ M(5,'comm','Nick: "You really have a nice dress, Hoa." Hoa: "____"',['I\'m glad you like it, Nick.','That is not true.','I don\'t think so.','Why did you say that?'],'I\'m glad you like it là mẫu đáp lời khen lịch sự, thể hiện vui vẻ khi người kia thích.'),
+ M(5,'comm','Which sentence is a compliment?',['What a lovely bicycle you have!','How much was your bicycle?','Where did you buy it?','Can I ride it now?'],'Compliment (lời khen) có dạng What a + tính từ + danh từ + you have! Ba câu còn lại là câu hỏi.'),
+ O(5,'comm','Sắp xếp thành một lời khen.','What a nice school bag you have!','What a + tính từ + danh từ + you have!'),
+ M(5,'conv','How does Mai feel about her summer holiday?',['She likes it.','She doesn\'t like it.','She thinks it was fine.','She was bored.'],'Mai gọi đây là kỳ nghỉ hè thú vị (enjoyable) nên bạn ấy thích nó.',CTX.conv),
+ M(5,'conv','Where did Mai stay during her summer holiday?',['At her uncle\'s house.','At her friend\'s house.','At her grandparents\' house.','In a hotel.'],'Mai ở nhà chú (uncle) ở một làng nhỏ tại Bắc Ninh.',CTX.conv),
+ M(5,'conv','During harvest time, people harvest rice by ____.',['using a combine harvester','themselves','using a truck','using buffaloes'],'Dân làng gặt lúa bằng máy gặt đập liên hợp (combine harvester). Xe tải chỉ dùng để chở lúa.',CTX.conv),
+ M(5,'conv','Mai thinks people in the countryside lead ____.',['a healthier life','an exciting life','a busier life','a noisy life'],'Mai nói cuộc sống ở quê chậm hơn nhưng có vẻ lành mạnh hơn (healthier).',CTX.conv),
+ SO(5,'advert','Hai ngôi làng nào có đặc điểm sau? Xếp vào đúng nhóm.',['Duong Lam','Hollum','Cả hai'],[['It is an ancient village.',2],['We can visit an ancient pagoda and temples.',0],['We can get there by plane or ferry.',1],['We can go there by car, bus or bicycle.',0],['It has a lighthouse.',1]],'Cả hai là làng cổ. Duong Lam có chùa cổ, đền, đi bằng xe ô tô, xe buýt hoặc xe đạp. Hollum có hải đăng, đi bằng đường hàng không hoặc phà.',CTX.adv),
+ /* VI */
+ SO(6,'read','Dựa vào bài đọc, xếp mỗi câu vào Đúng (T) hoặc Sai (F).',['Đúng (T)','Sai (F)'],[['Life in the author\'s village is very peaceful.',0],['The people in the village work very hard.',0],['Villagers live only by catching fish in lakes, ponds and canals.',1],['The children are always busy helping their parents.',1],['The villagers get along well.',0]],'Câu 3 sai vì dân làng còn trồng rau, lúa, nuôi gia súc, trồng cây ăn quả. Câu 4 sai vì trẻ em chỉ "sometimes" giúp bố mẹ, không phải "always".',CTX.read),
+ SO(6,'opinions','Xếp mỗi ý vào cột phù hợp với cuộc sống nông thôn.',['Thích (Like)','Không thích (Dislike)'],[['low cost of living',0],['many cheap things',0],['fresh and cool air',0],['not many entertainment places',1],['poor means of transport',1],['not many good schools and colleges',1]],'Giá sinh hoạt rẻ, đồ rẻ, không khí trong lành là ưu điểm. Ít nơi giải trí, giao thông kém, ít trường tốt là nhược điểm.'),
+ M(6,'write','Which sentence is the best way to begin a paragraph about what you like about the countryside?',['There are some things I like about life in the countryside.','Last summer I went to my uncle\'s house.','What a beautiful kite you have!','The red car can run faster than the black car.'],'Câu chủ đề (topic sentence) phải nêu ngay chủ đề của đoạn: There are some things I like about life in the countryside.'),
+ M(6,'write','Life in the countryside is peaceful and the air is fresh. ____, the cost of living is low.',['Besides','However','Because','So'],'Besides = ngoài ra, dùng để thêm ý cùng chiều. However dùng cho ý đối lập.'),
+ M(6,'write','I like rural life. ____, there are not many places for entertainment, such as cinemas and theatres.',['However','Besides','Because','And'],'However = tuy nhiên, nối ý đối lập (thích nhưng có nhược điểm).'),
+ O(6,'write','Sắp xếp thành câu mở đoạn.','There are some things I like about life in the countryside.','Đây là câu chủ đề gợi ý trong Skills 2.'),
+ O(6,'write','Sắp xếp thành câu hoàn chỉnh.','The people here are friendly and close to each other.','Một ý ủng hộ: người dân thân thiện và gần gũi nhau.')
+];
+QS.forEach(function(q,i){
+ q.id='q'+(i+1);
+ q.units=q.type==='match'?q.pairs.length:q.type==='sort'?q.items.length:1;
+});
+
+/* helpers */
+function $(s,r){return (r||document).querySelector(s)}
+function h(t,a,k){var e=document.createElement(t);if(a)for(var x in a){var v=a[x];if(x==='class')e.className=v;else if(x==='html')e.innerHTML=v;else if(x==='text')e.textContent=v;else if(x.slice(0,2)==='on')e.addEventListener(x.slice(2),v);else if(v===true)e.setAttribute(x,'');else if(v!==false&&v!=null)e.setAttribute(x,v)}(k||[]).forEach(function(c){if(c==null||c===false)return;e.appendChild(typeof c==='string'?document.createTextNode(c):c)});return e}
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(s){var x=2166136261;for(var i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619)}return x>>>0}
+function shuf(a,r){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function mmss(s){s=Math.max(0,s);var m=Math.floor(s/60),x=s%60;return (m<10?'0':'')+m+':'+(x<10?'0':'')+x}
+function qhtml(q){return q.q.replace(/_{3,}/g,'<span class="blank"></span>')}
+function plain(s){return s.replace(/<[^>]+>/g,'').replace(/_{3,}/g,'____')}
+function norm(s){return String(s).toLowerCase().replace(/[.!?,;]+$/,'').replace(/\s+/g,' ').trim()}
+var LET=['A','B','C','D'];
+
+/* sound */
+var AC=null,muted=false;
+function beep(f,d,t,v){if(muted)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime+(t||0);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.0001,n);g.gain.exponentialRampToValueAtTime(v||0.07,n+0.01);g.gain.exponentialRampToValueAtTime(0.0001,n+d);o.connect(g);g.connect(AC.destination);o.start(n);o.stop(n+d+0.02)}catch(e){}}
+function sOk(){beep(660,.12,0);beep(880,.2,.1)}
+function sBad(){beep(210,.28,0,.06)}
+function sEnd(){beep(523,.2,0);beep(659,.2,.15);beep(784,.35,.3)}
+
+/* state */
+var S=null,qStart=0,graded=false,onKey=null,tickId=null,confirmT=null;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function loadS(){try{var s=localStorage.getItem(KEY);return s?JSON.parse(s):null}catch(e){return null}}
+function clearS(){try{localStorage.removeItem(KEY)}catch(e){}}
+function remaining(){return Math.max(0,TOTAL-Math.floor((Date.now()-S.start)/1000))}
+function newState(name){
+ var seed=(Math.random()*4294967296)>>>0, r=rng(seed), order=[];
+ for(var c=1;c<=6;c++){order=order.concat(shuf(QS.filter(function(q){return q.ch===c}).map(function(q){return q.id}),r))}
+ return {name:name,seed:seed,start:Date.now(),order:order,pos:0,res:{},score:0,streak:0,best:0,done:false,end:null,timeout:false,chSeen:0};
+}
+function Q(id){for(var i=0;i<QS.length;i++)if(QS[i].id===id)return QS[i]}
+
+/* HUD */
+var app=$('#app'),hudwrap=$('#hudwrap');
+function buildPath(){
+ var p=$('#hp');p.innerHTML='';
+ var cur=currentCh();
+ CH.forEach(function(c,i){
+  var st=h('div',{class:'stop'},[h('div',{class:'node '+(i+1<cur?'done':i+1===cur?'cur':'')},[h('span',{text:c.n})])]);
+  if(i<5)st.appendChild(h('div',{class:'link '+(i+1<cur?'done':'')}));
+  p.appendChild(st);
+ });
+}
+function currentCh(){
+ if(S.done)return 7;
+ var id=S.order[Math.min(S.pos,S.order.length-1)];return Q(id).ch;
+}
+function updateHud(){
+ $('#hs').textContent=S.score;
+ var cb=$('#hc');cb.textContent='Combo ×'+S.streak;cb.classList.toggle('off',S.streak<2);
+ $('#hq').textContent='Câu '+Math.min(S.pos+(graded?0:1),QS.length)+' / '+QS.length+'   ·   '+Object.keys(S.res).length+' câu đã làm';
+ buildPath();
+}
+function tick(){
+ if(!S||S.done)return;
+ var r=remaining(),t=$('#ht');
+ t.textContent=mmss(r);t.className='timer'+(r<=60?' crit':r<=300?' low':'');
+ $('#hb').style.transform='scaleX('+(r/TOTAL)+')';
+ if(r<=0)finish(true);
+}
+function showHud(on){hudwrap.hidden=!on}
+$('#hm').addEventListener('click',function(){muted=!muted;this.textContent='Âm thanh: '+(muted?'tắt':'bật')});
+$('#hf').addEventListener('click',function(){
+ var b=this;
+ if(b.dataset.arm==='1'){clearTimeout(confirmT);b.dataset.arm='0';b.textContent='Nộp bài';finish(false);return}
+ b.dataset.arm='1';b.textContent='Bấm lần nữa để nộp';
+ confirmT=setTimeout(function(){b.dataset.arm='0';b.textContent='Nộp bài'},4000);
+});
+document.addEventListener('keydown',function(e){if(onKey)onKey(e)});
+
+/* screens */
+function clear(){app.innerHTML='';onKey=null;window.scrollTo(0,0)}
+
+function terrace(){
+ return '<svg class="terrace" viewBox="0 0 760 120" role="presentation" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M0 40 C120 10 240 70 380 40 S640 10 760 36" stroke="#6a3fc4" stroke-opacity=".55" stroke-width="1.5"/><path d="M0 62 C140 36 250 92 390 62 S650 36 760 60" stroke="#8e5cf0" stroke-opacity=".6" stroke-width="1.5"/><path d="M0 84 C130 60 260 112 400 84 S660 60 760 82" stroke="#a77bff" stroke-opacity=".65" stroke-width="1.5"/><path d="M0 106 C150 84 270 130 410 106 S670 84 760 104" stroke="#e6cf9a" stroke-opacity=".7" stroke-width="1.5"/></g></svg>';
+}
+
+function showIntro(){
+ clear();showHud(false);
+ var saved=loadS(),resume=saved&&!saved.done&&(TOTAL-Math.floor((Date.now()-saved.start)/1000))>0;
+ var done=saved&&saved.done;
+ var inp=h('input',{class:'txt',id:'nm',type:'text',maxlength:'40',placeholder:'Ví dụ: Nguyễn Minh Anh - 8A',autocomplete:'name'});
+ var hero=h('section',{class:'hero'},[
+  h('div',{class:'eyebrow',text:'English 8 · Unit 2'}),
+  h('h1',{text:'Hành trình Làng quê'}),
+  h('div',{class:'sub',text:'Life in the Countryside'}),
+  h('div',{class:'chips',html:'<span class="chip"><b>45</b> phút</span><span class="chip"><b>55</b> câu hỏi</span><span class="chip"><b>6</b> chặng</span><span class="chip">Báo cáo lỗi sai cá nhân</span>'}),
+  h('div',{html:terrace()})
+ ]);
+ app.appendChild(hero);
+ if(resume||done){
+  var p=h('section',{class:'panel'},[h('div',{class:'eyebrow',text:resume?'Bài đang làm dở':'Bài đã nộp'}),
+   h('h2',{text:saved.name,style:'font-size:1.7rem;margin:6px 0 4px'}),
+   h('p',{class:'muted',style:'margin:0 0 14px',text:resume?'Còn '+mmss(TOTAL-Math.floor((Date.now()-saved.start)/1000))+' · đã làm '+Object.keys(saved.res).length+'/'+QS.length+' câu · '+saved.score+' điểm':'Điểm '+saved.score+' · bạn có thể xem lại báo cáo.'})]);
+  var rr=h('div',{class:'row'});
+  rr.appendChild(h('button',{class:'btn',type:'button',text:resume?'Tiếp tục làm bài':'Xem báo cáo',onclick:function(){S=saved;if(resume)resumeGame();else{showHud(false);showReport(false)}}}));
+  p.appendChild(rr);app.appendChild(p);
+ }
+ var start=h('section',{class:'panel'},[
+  h('div',{class:'eyebrow',text:'Bắt đầu hành trình mới'}),
+  h('h2',{text:'Nhập tên của bạn',style:'font-size:1.7rem;margin:6px 0 14px'}),
+  h('label',{class:'f',for:'nm',text:'Họ tên và lớp'}),inp,
+  h('ul',{class:'rules'},[
+   h('li',{html:'<span class="dia"></span><span><b>Đồng hồ 45 phút</b> chạy liên tục từ khi bạn bấm bắt đầu. Hết giờ, bài tự nộp.</span>'}),
+   h('li',{html:'<span class="dia"></span><span><b>6 chặng, 55 câu</b> theo thứ tự Unit 2: từ vựng, phát âm, trạng từ so sánh, giao tiếp, đọc và viết.</span>'}),
+   h('li',{html:'<span class="dia"></span><span><b>Combo:</b> trả lời đúng liên tiếp để nhân điểm (tối đa ×1,5). Mỗi câu đúng được 100 điểm.</span>'}),
+   h('li',{html:'<span class="dia"></span><span><b>Sau mỗi câu</b> bạn thấy đáp án và lời giải thích ngắn. Đọc kỹ trước khi sang câu tiếp.</span>'}),
+   h('li',{html:'<span class="dia"></span><span><b>Cuối bài</b> có báo cáo lỗi sai và chiến lược ôn tập riêng cho bạn. Bạn có thể sao chép để gửi giáo viên.</span>'})
+  ])
+ ]);
+ var go=h('button',{class:'btn',type:'button',style:'margin-top:20px',text:'Bắt đầu hành trình',onclick:begin});
+ start.appendChild(go);app.appendChild(start);
+ function begin(){
+  var n=inp.value.trim();
+  if(!n){inp.focus();inp.style.borderColor='var(--bad)';return}
+  if(resume&&!window.__ok){/* starting new replaces saved */}
+  S=newState(n);save();startGame();
+ }
+ inp.addEventListener('keydown',function(e){if(e.key==='Enter')begin()});
+}
+
+function startGame(){
+ showHud(true);
+ $('#hf').dataset.arm='0';$('#hf').textContent='Nộp bài';
+ clearInterval(tickId);tickId=setInterval(tick,500);tick();
+ nextStep();
+}
+function resumeGame(){startGame()}
+
+function nextStep(){
+ if(S.pos>=S.order.length){finish(false);return}
+ var q=Q(S.order[S.pos]);
+ graded=false;updateHud();
+ if(S.chSeen<q.ch){showChapter(q.ch)}else showQuestion(q);
+}
+
+function showChapter(c){
+ clear();var C=CH[c-1];
+ var cnt=QS.filter(function(q){return q.ch===c}).length;
+ app.appendChild(h('section',{class:'chapter panel'},[
+  h('div',{class:'eyebrow',text:'Chặng '+c+' / 6'}),
+  h('div',{class:'big',text:C.n,'aria-hidden':'true'}),
+  h('h2',{text:C.t}),h('div',{class:'en',text:C.s}),
+  h('p',{text:C.d+' ('+cnt+' câu)'}),
+  h('button',{class:'btn',type:'button',id:'go',text:'Vào chặng',onclick:function(){S.chSeen=c;save();showQuestion(Q(S.order[S.pos]))}})
+ ]));
+ $('#go').focus();
+ onKey=function(e){if(e.key==='Enter'){e.preventDefault();$('#go').click()}};
+}
+
+function showQuestion(q){
+ clear();graded=false;qStart=Date.now();updateHud();
+ var C=CH[q.ch-1],idxIn=QS.filter(function(x){return x.ch===q.ch}).map(function(x){return x.id}).indexOf(q.id);
+ var inCh=S.order.filter(function(id){return Q(id).ch===q.ch});
+ var posIn=inCh.indexOf(q.id)+1;
+ var card=h('section',{class:'card'});
+ card.appendChild(h('div',{class:'kick'},[
+  h('span',{class:'eyebrow',text:'Chặng '+C.n+' · '+C.t+' · câu '+posIn+'/'+inCh.length}),
+  h('span',{class:'tag',text:TYPENAME[q.type]})
+ ]));
+ if(q.ctx)card.appendChild(h('div',{class:'ctx'},[h('span',{class:'eyebrow',text:CTX_LABEL(q.ctx)}),q.ctx[1]]));
+ card.appendChild(h('p',{class:'qt',html:qhtml(q)}));
+ var area=h('div');card.appendChild(area);
+ var fb=h('div');card.appendChild(fb);
+ app.appendChild(card);
+ var R=rng(S.seed^hash(q.id));
+ var api={q:q,area:area,fb:fb,R:R};
+ ({mcq:rMcq,input:rInput,order:rOrder,match:rMatch,sort:rSort})[q.type](api);
+}
+function CTX_LABEL(c){return c[0]}
+
+/* commit a result */
+function commit(api,g){
+ if(graded)return;graded=true;
+ var q=api.q,ms=Math.min(Date.now()-qStart,600000);
+ var full=g.ok===g.units,frac=g.ok/g.units;
+ var mult=1+0.1*Math.min(S.streak,5);
+ var pts=Math.round(100*frac*mult);
+ if(full){S.streak++;S.best=Math.max(S.best,S.streak)}else S.streak=0;
+ S.score+=pts;
+ S.res[q.id]={ok:g.ok,units:g.units,user:g.user,wrong:g.wrong,tags:g.tags,ms:ms,pts:pts};
+ S.pos++;save();
+ if(full)sOk();else sBad();
+ var cb=$('#hc');cb.classList.remove('pop');void cb.offsetWidth;cb.classList.add('pop');
+ updateHud();
+ var cls=full?'good':g.ok>0?'mid':'bad';
+ var title=full?'Chính xác! +'+pts+' điểm'+(mult>1?' (combo ×'+mult.toFixed(1).replace('.',',')+')':''):g.ok>0?'Đúng '+g.ok+'/'+g.units+' mục · +'+pts+' điểm':'Chưa chính xác';
+ var box=h('div',{class:'fb '+cls,role:'status'},[h('h3',{text:title,class:'pts'})]);
+ if(!full)box.appendChild(h('p',{class:'ans',text:'Đáp án: '+correctText(q)}));
+ box.appendChild(h('p',{html:'<b>Ghi nhớ:</b> '+q.exp}));
+ var last=S.pos>=S.order.length;
+ box.appendChild(h('button',{class:'btn go',type:'button',id:'nx',text:last?'Xem báo cáo':'Câu tiếp theo',onclick:nextStep}));
+ api.fb.appendChild(box);
+ $('#nx').focus();
+ onKey=function(e){if(e.key==='Enter'){e.preventDefault();nextStep()}};
+ box.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function correctText(q){
+ if(q.type==='mcq')return q.opts[0];
+ if(q.type==='input')return q.ans[0];
+ if(q.type==='order')return q.sentence;
+ if(q.type==='match')return q.pairs.map(function(p){return p[0]+' = '+p[1]}).join(' ; ');
+ var out=[];q.buckets.forEach(function(b,bi){out.push(b+': '+q.items.filter(function(it){return it[1]===bi}).map(function(it){return it[0]}).join(', '))});return out.join(' | ');
+}
+
+/* MCQ */
+function rMcq(a){
+ var q=a.q,opts=shuf(q.opts,a.R),wrap=h('div',{class:'opts'}),btns=[];
+ opts.forEach(function(o,i){
+  var b=h('button',{class:'opt',type:'button'},[h('span',{class:'l',text:LET[i]}),h('span',{text:o})]);
+  b.addEventListener('click',function(){pick(i)});wrap.appendChild(b);btns.push(b);
+ });
+ a.area.appendChild(wrap);
+ function pick(i){
+  if(graded)return;
+  var ok=opts[i]===q.opts[0];
+  btns.forEach(function(b,j){b.disabled=true;if(opts[j]===q.opts[0])b.classList.add('good');else if(j===i)b.classList.add('bad');else b.classList.add('dim')});
+  commit(a,{ok:ok?1:0,units:1,user:opts[i],wrong:ok?[]:[{tag:q.tag}],tags:[[q.tag,ok?1:0,1]]});
+ }
+ onKey=function(e){if(graded)return;var k=e.key.toUpperCase(),i=LET.indexOf(k);if(i<0&&/^[1-4]$/.test(e.key))i=+e.key-1;if(i>=0&&i<opts.length)pick(i)};
+}
+
+/* Input */
+function rInput(a){
+ var q=a.q;
+ var inp=h('input',{class:'txt',id:'ai',type:'text',autocomplete:'off',autocapitalize:'off',spellcheck:'false','aria-label':'Câu trả lời của bạn',placeholder:'Gõ đáp án...'});
+ var b=h('button',{class:'btn',type:'button',text:'Kiểm tra',onclick:check});
+ a.area.appendChild(h('div',{class:'ansrow'},[inp,b]));
+ setTimeout(function(){inp.focus()},50);
+ function check(){
+  if(graded)return;var v=norm(inp.value);if(!v){inp.focus();return}
+  var ok=q.ans.some(function(x){return norm(x)===v});
+  inp.disabled=true;b.disabled=true;inp.classList.add(ok?'good':'bad');
+  commit(a,{ok:ok?1:0,units:1,user:inp.value.trim(),wrong:ok?[]:[{tag:q.tag}],tags:[[q.tag,ok?1:0,1]]});
+ }
+ inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();e.stopPropagation();check()}});
+}
+
+/* Order */
+function rOrder(a){
+ var q=a.q,toks=q.sentence.split(' '),bankIdx=shuf(toks.map(function(_,i){return i}),a.R),chosen=[];
+ var slots=h('div',{class:'slots','aria-live':'polite'}),bank=h('div',{class:'bank'});
+ var chk=h('button',{class:'btn',type:'button',text:'Kiểm tra',disabled:true,onclick:check});
+ var rst=h('button',{class:'btn ghost',type:'button',text:'Làm lại',onclick:function(){if(graded)return;chosen=[];draw()}});
+ a.area.appendChild(h('p',{class:'hint',text:'Chạm vào từng từ để xếp vào câu. Chạm vào từ đã xếp để bỏ ra.'}));
+ a.area.appendChild(slots);a.area.appendChild(bank);a.area.appendChild(h('div',{class:'row'},[chk,rst]));
+ function draw(){
+  slots.innerHTML='';bank.innerHTML='';
+  if(!chosen.length)slots.appendChild(h('span',{class:'ph',text:'Câu của bạn sẽ hiện ở đây'}));
+  chosen.forEach(function(ti,k){slots.appendChild(h('button',{class:'tok',type:'button',text:toks[ti],disabled:graded,onclick:function(){chosen.splice(k,1);draw()}}))});
+  bankIdx.forEach(function(ti){var used=chosen.indexOf(ti)>=0;bank.appendChild(h('button',{class:'tok'+(used?' used':''),type:'button',text:toks[ti],disabled:used||graded,onclick:function(){chosen.push(ti);draw()}}))});
+  chk.disabled=chosen.length!==toks.length||graded;
+ }
+ function check(){
+  if(graded||chosen.length!==toks.length)return;
+  var s=chosen.map(function(i){return toks[i]}).join(' '),ok=s===q.sentence;
+  slots.classList.add(ok?'good':'bad');chk.disabled=true;rst.disabled=true;
+  commit(a,{ok:ok?1:0,units:1,user:s,wrong:ok?[]:[{tag:q.tag}],tags:[[q.tag,ok?1:0,1]]});draw();
+ }
+ draw();
+ onKey=function(e){if(e.key==='Enter'&&!graded&&!chk.disabled){e.preventDefault();check()}};
+}
+
+/* Match */
+function rMatch(a){
+ var q=a.q,n=q.pairs.length,L=q.pairs.map(function(_,i){return i}),Rr=shuf(L,a.R),pair={},sel=null;
+ var grid=h('div',{class:'mgrid'}),chk=h('button',{class:'btn',type:'button',text:'Kiểm tra',disabled:true,onclick:check});
+ a.area.appendChild(h('p',{class:'hint',text:'Chạm vào một mục bên trái, rồi chạm vào mục bên phải tương ứng. Chạm lần nữa để bỏ nối.'}));
+ a.area.appendChild(grid);a.area.appendChild(h('div',{class:'row',style:'margin-top:14px'},[chk]));
+ function draw(res){
+  grid.innerHTML='';
+  var cl=h('div',{class:'mcol'}),cr=h('div',{class:'mcol'});
+  L.forEach(function(i){
+   var paired=pair[i]!=null;
+   var b=h('button',{class:'mi hue'+(i%6)+(sel===i?' sel':'')+(res?(pair[i]===i?' good':' bad'):''),type:'button',disabled:!!res,onclick:function(){
+    if(paired){delete pair[i];sel=null}else sel=(sel===i?null:i);draw()}},[h('span',{class:'n on',text:String(i+1)}),h('span',{text:q.pairs[i][0]})]);
+   cl.appendChild(b);
+  });
+  Rr.forEach(function(ri){
+   var owner=null;for(var k in pair)if(pair[k]===ri)owner=+k;
+   var cls='mi'+(owner!=null?' hue'+(owner%6):'');
+   if(res)cls+=(owner===ri?' good':' bad');
+   var b=h('button',{class:cls,type:'button',disabled:!!res,onclick:function(){
+    if(owner!=null&&sel==null){delete pair[owner]}
+    else if(sel!=null){if(owner!=null)delete pair[owner];pair[sel]=ri;sel=null}
+    draw()}},[h('span',{class:'n'+(owner!=null?' on':''),text:owner!=null?String(owner+1):''}),h('span',{text:q.pairs[ri][1]})]);
+   cr.appendChild(b);
+  });
+  grid.appendChild(cl);grid.appendChild(cr);
+  chk.disabled=Object.keys(pair).length!==n||!!res;
+ }
+ function check(){
+  if(graded||Object.keys(pair).length!==n)return;
+  var ok=0,wrong=[],tg={},user=[];
+  L.forEach(function(i){
+   var t=q.pairs[i][2]||q.tag,good=pair[i]===i;
+   tg[t]=tg[t]||[0,0];tg[t][1]++;if(good){ok++;tg[t][0]++}else wrong.push({tag:t,txt:q.pairs[i][0]+' (bạn nối: '+q.pairs[pair[i]][1]+'; đúng: '+q.pairs[i][1]+')'});
+   user.push(q.pairs[i][0]+' = '+q.pairs[pair[i]][1]);
+  });
+  draw(true);
+  commit(a,{ok:ok,units:n,user:user.join(' ; '),wrong:wrong,tags:Object.keys(tg).map(function(t){return [t,tg[t][0],tg[t][1]]})});
+ }
+ draw();
+ onKey=function(e){if(e.key==='Enter'&&!graded&&!chk.disabled){e.preventDefault();check()}};
+}
+
+/* Sort */
+function rSort(a){
+ var q=a.q,items=q.items,order=shuf(items.map(function(_,i){return i}),a.R),asg={},sel=null;
+ var pool=h('div',{class:'pool'}),bks=h('div',{class:'buckets'}),chk=h('button',{class:'btn',type:'button',text:'Kiểm tra',disabled:true,onclick:check});
+ a.area.appendChild(h('p',{class:'hint',text:'Chạm vào một mục, rồi chạm vào tiêu đề của nhóm để đặt vào. Chạm vào mục đã đặt để đưa về lại.'}));
+ a.area.appendChild(pool);a.area.appendChild(bks);a.area.appendChild(h('div',{class:'row'},[chk]));
+ function chip(i,res){
+  var cls='chipw'+(sel===i?' sel':'');
+  if(res)cls+=(asg[i]===items[i][1]?' good':' bad');
+  return h('button',{class:cls,type:'button',disabled:!!res,text:items[i][0],onclick:function(){
+   if(asg[i]!=null){delete asg[i];sel=null}else sel=(sel===i?null:i);draw()}});
+ }
+ function draw(res){
+  pool.innerHTML='';bks.innerHTML='';
+  var left=order.filter(function(i){return asg[i]==null});
+  if(!left.length)pool.appendChild(h('span',{class:'hint',style:'margin:0;align-self:center',text:res?'Đã chấm xong':'Đã xếp hết. Bấm Kiểm tra.'}));
+  left.forEach(function(i){pool.appendChild(chip(i,res))});
+  q.buckets.forEach(function(b,bi){
+   var box=h('div',{class:'bk'+(sel!=null?' ready':'')});
+   box.appendChild(h('button',{class:'',type:'button',text:b,disabled:!!res,onclick:function(){if(sel!=null){asg[sel]=bi;sel=null;draw()}}}));
+   box.firstChild.className='';box.firstChild.setAttribute('style','');
+   box.replaceChild(h('header',{role:'button',tabindex:res?'-1':'0',text:b,onclick:function(){if(!res&&sel!=null){asg[sel]=bi;sel=null;draw()}},onkeydown:function(e){if((e.key==='Enter'||e.key===' ')&&!res&&sel!=null){e.preventDefault();e.stopPropagation();asg[sel]=bi;sel=null;draw()}}}),box.firstChild);
+   order.filter(function(i){return asg[i]===bi}).forEach(function(i){box.appendChild(chip(i,res))});
+   bks.appendChild(box);
+  });
+  chk.disabled=left.length>0||!!res;
+ }
+ function check(){
+  if(graded||Object.keys(asg).length!==items.length)return;
+  var ok=0,wrong=[],tg={},bad=[];
+  items.forEach(function(it,i){
+   var t=it[2]||q.tag,good=asg[i]===it[1];
+   tg[t]=tg[t]||[0,0];tg[t][1]++;if(good){ok++;tg[t][0]++}else{wrong.push({tag:t,txt:it[0]+' (bạn xếp: '+q.buckets[asg[i]]+'; đúng: '+q.buckets[it[1]]+')'});bad.push(it[0])}
+  });
+  draw(true);
+  commit(a,{ok:ok,units:items.length,user:ok===items.length?'Đúng hết':'Sai ở: '+bad.join(' ; '),wrong:wrong,tags:Object.keys(tg).map(function(t){return [t,tg[t][0],tg[t][1]]})});
+ }
+ draw();
+ onKey=function(e){if(e.key==='Enter'&&!graded&&!chk.disabled){e.preventDefault();check()}};
+}
+
+/* finish + report */
+function finish(timeout){
+ if(!S||S.done)return;
+ S.done=true;S.end=Date.now();S.timeout=!!timeout;save();
+ clearInterval(tickId);sEnd();
+ showHud(false);showReport(timeout);
+}
+
+function analyse(){
+ var tag={},skill={},attempted=0,okU=0,allU=0,skipU=0,skippedQs=[],wrongQs=[],byType={},fastWrong=0,msTot=0,answered=0;
+ Object.keys(TAGS).forEach(function(t){tag[t]={ok:0,all:0,skip:0}});
+ Object.keys(SKILLS).forEach(function(k){skill[k]={ok:0,all:0}});
+ QS.forEach(function(q){
+  var r=S.res[q.id];
+  if(!r){skippedQs.push(q);tag[q.tag].skip+=q.units;skipU+=q.units;return}
+  answered++;msTot+=r.ms;
+  r.tags.forEach(function(t){tag[t[0]].ok+=t[1];tag[t[0]].all+=t[2];skill[TAGS[t[0]].k].ok+=t[1];skill[TAGS[t[0]].k].all+=t[2];okU+=t[1];allU+=t[2]});
+  byType[q.type]=byType[q.type]||{ms:0,n:0};byType[q.type].ms+=r.ms;byType[q.type].n++;
+  if(r.ok<r.units){wrongQs.push(q);if((q.type==='mcq'||q.type==='input')&&r.ms<5000)fastWrong++}
+ });
+ return {tag:tag,skill:skill,okU:okU,allU:allU,skipU:skipU,skippedQs:skippedQs,wrongQs:wrongQs,byType:byType,fastWrong:fastWrong,msTot:msTot,answered:answered};
+}
+function rankOf(p,answered){
+ if(answered<5)return ['Lữ khách mới bước vào làng','Bạn mới làm được rất ít câu. Hãy thử lại với đủ thời gian nhé.'];
+ if(p>=90)return ['Đại sứ Amethyst','Kiến thức Unit 2 của bạn rất vững. Hãy thử thách bản thân bằng bài viết và nói.'];
+ if(p>=75)return ['Hiệp sĩ Tím','Nền tảng tốt. Chỉ còn vài điểm cần mài giũa để đạt mức xuất sắc.'];
+ if(p>=60)return ['Nghệ nhân Làng quê','Bạn nắm được phần lớn nội dung. Tập trung sửa các mục yếu bên dưới để tăng tốc.'];
+ if(p>=40)return ['Lữ khách Chăm chỉ','Bạn đã có điểm khởi đầu. Làm theo kế hoạch ôn tập bên dưới, bạn sẽ tiến bộ rõ.'];
+ return ['Người Khám phá','Đừng nản. Mỗi lỗi sai là một mục để học. Làm theo kế hoạch từng bước bên dưới.'];
+}
+function pct(a,b){return b?Math.round(100*a/b):null}
+
+function strategy(A){
+ var weak=Object.keys(A.tag).filter(function(t){var x=A.tag[t];return x.all>0&&x.ok/x.all<0.8}).sort(function(a,b){var x=A.tag[a],y=A.tag[b];return (x.ok/x.all)-(y.ok/y.all)||(y.all-y.ok)-(x.all-x.ok)});
+ var steps=[],ins=[];
+ var top=weak.slice(0,3);
+ if(top.length){
+  steps.push(['Hôm nay, 20 phút: sửa các mục yếu nhất','Ưu tiên theo thứ tự: '+top.map(function(t){return TAGS[t].n}).join('; ')+'. Với mỗi mục, chép lại câu đã sai kèm đáp án đúng, đọc to hai lần và tự đặt một câu mới.']);
+ }else{
+  steps.push(['Hôm nay, 15 phút: củng cố','Bạn không có mục nào dưới 80%. Hãy đọc lại các câu sai (nếu có) và tự ra 5 câu hỏi khó cho bạn cùng bàn.']);
+ }
+ steps.push(['Ngày 1, 3 và 7: gặp lại lỗi sai','Làm thẻ ghi nhớ cho từ, cụm và công thức bạn đã sai. Ôn vào ngày thứ 1, 3 và 7 sau hôm nay. Mỗi lần chỉ 5 đến 8 phút nhưng nhớ lâu hơn nhiều so với học dồn một buổi.']);
+ steps.push(['Cuối tuần: dùng ngay trong viết và nói','Viết đoạn 80 đến 100 từ về điều bạn thích hoặc không thích ở cuộc sống nông thôn (Skills 2, bài 5). Dùng ít nhất 3 từ vựng bạn từng sai, 2 trạng từ so sánh và 1 lời khen. Sau đó nói 1 phút về làng hoặc thị trấn của bạn.']);
+ steps.push(['Sau 7 ngày: chơi lại để kiểm chứng','Đặt mục tiêu tăng ít nhất 10 điểm phần trăm chính xác, đặc biệt ở các mục: '+(top.length?top.map(function(t){return TAGS[t].n}).join(', '):'những chặng bạn thấy khó nhất')+'.']);
+ var used=A.answered?Math.round(A.msTot/A.answered/1000):0;
+ var dur=Math.min(TOTAL,Math.floor(((S.end||Date.now())-S.start)/1000));
+ ins.push('Bạn dùng '+mmss(dur)+' trên tổng '+mmss(TOTAL)+', trung bình '+used+' giây mỗi câu.');
+ if(A.skippedQs.length){
+  var chs={};A.skippedQs.forEach(function(q){chs[CH[q.ch-1].n]=1});
+  ins.push('Bạn chưa làm tới '+A.skippedQs.length+' câu (chặng '+Object.keys(chs).join(', ')+'). Lần sau hãy dành tối đa khoảng 30 giây cho câu chọn đáp án và 90 giây cho câu nối hoặc phân loại; câu khó thì làm nhanh rồi đi tiếp.');
+ }
+ if(A.fastWrong>=3)ins.push('Có '+A.fastWrong+' câu bạn trả lời dưới 5 giây nhưng sai. Có thể bạn đọc đề hơi vội: hãy gạch chân từ khoá (than, by, onto, from...) trước khi chọn.');
+ var slow=null;Object.keys(A.byType).forEach(function(t){var av=A.byType[t].ms/A.byType[t].n/1000;if(av>60&&(!slow||av>slow[1]))slow=[t,av]});
+ if(slow)ins.push('Dạng "'+TYPENAME[slow[0]]+'" làm bạn mất nhiều thời gian nhất (trung bình '+Math.round(slow[1])+' giây). Hãy luyện dạng này riêng để tăng tốc.');
+ if(S.best>=3)ins.push('Chuỗi đúng liên tiếp dài nhất của bạn là '+S.best+' câu. Khi giữ được nhịp tập trung, bạn làm rất tốt.');
+ return {weak:weak,steps:steps,ins:ins};
+}
+
+function reportText(A,st){
+ var acc=pct(A.okU,A.allU),rk=rankOf(acc==null?0:acc,A.answered);
+ var L=[];
+ L.push('BÁO CÁO: HÀNH TRÌNH LÀNG QUÊ (English 8, Unit 2)');
+ L.push('Học viên: '+S.name+'   Ngày: '+new Date(S.end||Date.now()).toLocaleDateString('vi-VN'));
+ L.push('Điểm: '+S.score+'   Độ chính xác: '+(acc==null?'-':acc+'%')+'   Danh hiệu: '+rk[0]);
+ L.push('Đã làm: '+A.answered+'/'+QS.length+' câu   Thời gian: '+mmss(Math.min(TOTAL,Math.floor(((S.end||Date.now())-S.start)/1000)))+'   Combo cao nhất: '+S.best);
+ L.push('');L.push('KỸ NĂNG');
+ Object.keys(SKILLS).forEach(function(k){var p=pct(A.skill[k].ok,A.skill[k].all);L.push('- '+SKILLS[k]+': '+(p==null?'chưa làm':p+'% ('+A.skill[k].ok+'/'+A.skill[k].all+' mục)'))});
+ L.push('');L.push('MỤC CẦN ÔN');
+ if(st.weak.length)st.weak.forEach(function(t){var x=A.tag[t];L.push('- '+TAGS[t].n+': '+x.ok+'/'+x.all+' ('+pct(x.ok,x.all)+'%)')});else L.push('- Không có mục nào dưới 80%');
+ L.push('');L.push('LỖI SAI');
+ if(!A.wrongQs.length)L.push('- Không có');
+ A.wrongQs.forEach(function(q){var r=S.res[q.id];L.push('- [Chặng '+CH[q.ch-1].n+'] '+plain(q.q)+' | Bạn: '+r.user+' | Đáp án: '+correctText(q))});
+ if(A.skippedQs.length)L.push('Chưa làm tới: '+A.skippedQs.length+' câu');
+ L.push('');L.push('KẾ HOẠCH ÔN TẬP');
+ st.steps.forEach(function(s,i){L.push((i+1)+'. '+s[0]+': '+s[1])});
+ return L.join('\n');
+}
+
+function showReport(timeout){
+ clear();showHud(false);
+ var A=analyse(),st=strategy(A),acc=pct(A.okU,A.allU),rk=rankOf(acc==null?0:acc,A.answered);
+ var dur=Math.min(TOTAL,Math.floor(((S.end||Date.now())-S.start)/1000));
+ if(timeout)app.appendChild(h('div',{class:'banner',text:'Hết giờ. Bài của bạn đã được nộp tự động.'}));
+ var C=2*Math.PI*52,dash=(acc||0)/100*C;
+ var ring=h('div',{class:'ring',html:'<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#46306f" stroke-width="9"/><circle cx="60" cy="60" r="52" fill="none" stroke="#e6cf9a" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+dash.toFixed(1)+' '+C.toFixed(1)+'"/></svg>'});
+ ring.appendChild(h('div',{class:'v'},[h('div',{},[(acc==null?'-':acc+'%'),h('small',{text:'chính xác'})])]));
+ var hero=h('section',{class:'panel'},[h('div',{class:'rep-hero'},[ring,h('div',{},[
+  h('div',{class:'eyebrow',text:'Báo cáo của '+S.name}),
+  h('div',{class:'rank',text:rk[0]}),
+  h('p',{class:'muted',style:'margin:0;max-width:44ch',text:rk[1]}),
+  h('div',{class:'facts',html:'<span>Điểm <b>'+S.score+'</b></span><span>Đã làm <b>'+A.answered+'/'+QS.length+'</b> câu</span><span>Thời gian <b>'+mmss(dur)+'</b></span><span>Combo cao nhất <b>×'+S.best+'</b></span>'})
+ ])])]);
+ app.appendChild(hero);
+
+ var sec1=h('section',{class:'sec'},[h('h2',{text:'Bản đồ kỹ năng'}),h('p',{text:'Tỉ lệ trả lời đúng theo từng nhóm kiến thức trong Unit 2.'})]);
+ var pan=h('div',{class:'panel',style:'padding:10px 20px'});
+ Object.keys(SKILLS).forEach(function(k){
+  var p=pct(A.skill[k].ok,A.skill[k].all),cls=p==null?'':p>=80?'hi':p<60?'lo':'';
+  pan.appendChild(h('div',{class:'skill'},[h('span',{class:'nm',text:SKILLS[k]}),h('div',{class:'track'},[h('i',{class:cls,style:'width:'+(p||0)+'%'})]),h('span',{class:'pc',text:p==null?'-':p+'%'})]));
+ });
+ sec1.appendChild(pan);app.appendChild(sec1);
+
+ var sec2=h('section',{class:'sec'},[h('h2',{text:'Lỗi sai nằm ở đâu'}),h('p',{text:st.weak.length?'Các mục dưới 80% được xếp từ yếu nhất. Mỗi mục có cách ôn cụ thể.':'Bạn không có mục nào dưới 80%. Rất tốt!'})]);
+ st.weak.forEach(function(t){
+  var x=A.tag[t];
+  sec2.appendChild(h('div',{class:'weak'},[h('div',{class:'top'},[h('h3',{text:TAGS[t].n}),h('span',{class:'st',text:'Đúng '+x.ok+'/'+x.all+' ('+pct(x.ok,x.all)+'%)'})]),h('p',{text:TAGS[t].tip})]));
+ });
+ app.appendChild(sec2);
+
+ var sec3=h('section',{class:'sec'},[h('h2',{text:'Chiến lược học tập dành cho bạn'}),h('p',{text:'Làm lần lượt từng bước. Mỗi bước đều ngắn và có mục tiêu rõ.'})]);
+ var ol=h('ol',{class:'steps'});
+ st.steps.forEach(function(s){ol.appendChild(h('li',{},[h('div',{},[h('h3',{text:s[0]}),h('p',{text:s[1]})])]))});
+ sec3.appendChild(h('div',{class:'panel'},[ol]));
+ var ul=h('ul',{class:'insights'});
+ st.ins.forEach(function(t){ul.appendChild(h('li',{html:'<span class="dia"></span><span></span>'}))});
+ st.ins.forEach(function(t,i){ul.children[i].lastChild.textContent=t});
+ sec3.appendChild(h('div',{class:'panel'},[h('div',{class:'eyebrow',text:'Phân tích cách làm bài'}),ul]));
+ app.appendChild(sec3);
+
+ var sec4=h('section',{class:'sec'},[h('h2',{text:'Nhật ký lỗi sai'}),h('p',{text:'Mở từng chặng để xem câu sai, đáp án của bạn và đáp án đúng.'})]);
+ var any=false;
+ for(var c=1;c<=6;c++){
+  var ws=A.wrongQs.filter(function(q){return q.ch===c}),sk=A.skippedQs.filter(function(q){return q.ch===c});
+  if(!ws.length&&!sk.length)continue;any=true;
+  var d=h('details',{class:'err'});
+  d.appendChild(h('summary',{},[h('span',{text:'Chặng '+CH[c-1].n+' · '+CH[c-1].t}),h('span',{text:ws.length+' sai'+(sk.length?' · '+sk.length+' chưa làm':'')})]));
+  ws.forEach(function(q){
+   var r=S.res[q.id],it=h('div',{class:'erritem'});
+   it.appendChild(h('div',{class:'q',html:qhtml(q)}));
+   if(q.type==='match'||q.type==='sort'){
+    r.wrong.forEach(function(w){it.appendChild(h('div',{class:'you',text:'Sai: '+w.txt}))});
+   }else{
+    it.appendChild(h('div',{class:'you',text:'Bạn trả lời: '+r.user}));
+    it.appendChild(h('div',{class:'ok',text:'Đáp án đúng: '+correctText(q)}));
+   }
+   it.appendChild(h('div',{class:'ex',html:q.exp}));d.appendChild(it);
+  });
+  sk.forEach(function(q){var it=h('div',{class:'erritem'});it.appendChild(h('div',{class:'q',html:qhtml(q)}));it.appendChild(h('div',{class:'muted',text:'Chưa làm tới. Đáp án: '+correctText(q)}));d.appendChild(it)});
+  sec4.appendChild(d);
+ }
+ if(!any)sec4.appendChild(h('div',{class:'panel',text:'Không có lỗi sai nào. Xuất sắc!'}));
+ app.appendChild(sec4);
+
+ var txt=reportText(A,st);
+ var toast=h('div',{class:'toast','aria-live':'polite'});
+ var ta=h('textarea',{class:'copybox',readonly:true,hidden:true,'aria-label':'Nội dung báo cáo'});ta.value=txt;
+ var cp=h('button',{class:'btn',type:'button',text:'Sao chép báo cáo gửi giáo viên',onclick:function(){
+  function fallback(){ta.hidden=false;ta.focus();ta.select();toast.textContent='Hãy chọn toàn bộ nội dung bên dưới rồi sao chép thủ công.'}
+  try{navigator.clipboard.writeText(txt).then(function(){toast.textContent='Đã sao chép. Dán vào Zalo hoặc email gửi giáo viên.'},fallback)}catch(e){fallback()}
+ }});
+ var again=h('button',{class:'btn ghost',type:'button',text:'Chơi lại từ đầu',onclick:function(){if(again.dataset.a==='1'){clearS();S=null;showIntro()}else{again.dataset.a='1';again.textContent='Bấm lần nữa để xoá kết quả và chơi lại';setTimeout(function(){again.dataset.a='0';again.textContent='Chơi lại từ đầu'},4000)}}});
+ app.appendChild(h('section',{class:'sec'},[h('h2',{text:'Gửi kết quả cho giáo viên'}),h('p',{text:'Báo cáo được lưu trên thiết bị này và không tự động gửi đi. Hãy sao chép và gửi cho giáo viên.'}),h('div',{class:'row'},[cp,again]),toast,ta]));
+}
+
+showIntro();
+})();
+</script>
+
+</body></html>
